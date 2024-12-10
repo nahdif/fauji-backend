@@ -23,18 +23,28 @@ const loadModel = require('../services/loadModel');
 
         server.ext('onPreResponse', (request, h) => {
             const response = request.response;
-
+        
             if (response.isBoom) {
-                const newResponse = h.response({
+                const { output } = response;
+        
+                // Periksa jika error adalah "Payload Too Large" (413)
+                if (output.statusCode === 413) {
+                    return h.response({
+                        status: 'fail',
+                        message: 'Payload content length greater than maximum allowed: 1000000',
+                    }).code(413);
+                }
+        
+                // Respon default untuk error lainnya
+                return h.response({
                     status: 'fail',
                     message: response.message,
-                });
-                newResponse.code(response.output.statusCode);
-                return newResponse;
+                }).code(output.statusCode);
             }
-
+        
             return h.continue;
         });
+        
 
         await server.start();
         console.log(`Server running on ${server.info.uri}`);
